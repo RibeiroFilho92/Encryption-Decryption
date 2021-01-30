@@ -1,0 +1,201 @@
+package encryptdecrypt;
+
+import java.io.*;
+import java.lang.management.OperatingSystemMXBean;
+
+//Use of Strategy pattern
+public class Main {
+	public interface Operation {
+
+		String operation(String msg, int key, String type);
+
+	}
+
+	public static class Enc implements Operation {
+
+		@Override
+		public String operation(String msg, int key, String type) {
+			String[] s = msg.split("");
+			String aux = "";
+			if (type.toLowerCase().equals("unicode")) {
+				for (int i = 0; i < s.length; i++) {
+					char c = s[i].charAt(0);
+					int val = c + key;
+					char d = (char) val;
+					s[i] = d + "";
+					aux += d + "";
+				}
+			}
+			if (type.toLowerCase().equals("shift")) {
+				for (int i = 0; i < s.length; i++) {
+					if (s[i].contains(" ") || s[i].contains(",") || s[i].contains(".") || s[i].contains("!") || s[i].contains("?")) {
+						if (s[i].contains(" ")) {
+							aux += " ";
+						}
+						continue;
+					} else {
+						char c = s[i].charAt(0);
+						int val = 0;
+						if (c >= 97 && c <= 122) {
+							val = c + key;
+							if (val > 122) {
+								val = val - 122 + 96;
+							}
+						} else if (val >= 65 && val <= 90 ){
+							val = c + key;
+							if (val > 90) {
+								val = val - 92 + 64;
+							}
+						}
+						char d = (char) val;
+						s[i] = d + "";
+						aux += d + "";
+					}
+				}
+			}
+			return aux;
+		}
+	}
+
+	public static class Dec implements Operation {
+
+		@Override
+		public String operation(String msg, int key, String type) {
+			String[] s = msg.split("");
+			String aux = "";
+			if (type.toLowerCase().equals("unicode")) {
+				for (int i = 0; i < s.length; i++) {
+					char c = s[i].charAt(0);
+					int val = c - key;
+					char d = (char) val;
+					s[i] = d + "";
+					aux += d + "";
+				}
+			}
+			if (type.toLowerCase().equals("shift")) {
+				for (int i = 0; i < s.length; i++) {
+					if (s[i].contains(" ") || s[i].contains(",") || s[i].contains(".") || s[i].contains("!") || s[i].contains("?")) {
+						if (s[i].contains(" ")) {
+							aux += " ";
+						}
+						continue;
+					}
+					else {
+						char c = s[i].charAt(0);
+						int val = 0;
+						if (c >= 97 && c <= 122) {
+							val = c - key;
+								if (val < 97) {
+									val = 122 - (96 - val);
+								}
+						} else if (val >= 65 && val <= 90 ){
+							val = c + key;
+							if (val > 90) {
+								val = 90 - (64 - val);
+							}
+						}
+						char d = (char) val;
+						s[i] = d + "";
+						aux += d + "";
+					}
+				}
+			}
+			return aux;
+		}
+	}
+
+	public static abstract class EncrypDecryp {
+
+		protected Operation operation;
+
+		public EncrypDecryp(Operation operation) {
+			this.operation = operation;
+		}
+
+		public abstract String operation(String msg, int key, String type);
+
+
+	}
+
+	public static class EncrypDecrypUnicode extends EncrypDecryp {
+
+		public EncrypDecrypUnicode(Operation operation) {
+			super(operation);
+		}
+
+		@Override
+		public String operation(String msg, int key, String type) {
+			return this.operation.operation(msg, key, type);
+		}
+	}
+
+	public static class EncrypDecrypShift extends EncrypDecryp {
+
+		public EncrypDecrypShift(Operation operation) {
+			super(operation);
+		}
+
+		@Override
+		public String operation(String msg, int key, String type) {
+			return this.operation.operation(msg, key, type);
+		}
+	}
+
+    public static void main(String[] args) throws FileNotFoundException {
+
+		String operation = "";
+		String msg = "";
+		String alg = "shift";
+		boolean data = false;
+		int key = 0;
+		
+		for (int i = 0; i < args.length; i++) {
+			if (args[i].contains("-key")) {
+				key = Integer.parseInt(args[i + 1]);
+			}
+			if (args[i].contains("-data")) {
+				msg = args[i + 1];
+			}
+			if (args[i].contains("-in") && !data) {
+				File file = new File(args[i + 1]);
+				try (BufferedReader br = new BufferedReader(new FileReader(file) ) ) {
+					String line;
+					while ((line = br.readLine())  != null) {
+						msg += line;
+					}
+				} catch (IOException e) {
+					System.out.println("Error");
+				}
+			}
+			if (args[i].contains("-mode")) {
+				operation = args[i + 1];
+			}
+			if (args[i].contains("-alg")) {
+				alg = args[i + 1];
+			}
+		}
+
+		if (operation.equals("dec")) {
+			EncrypDecryp enc = new EncrypDecrypShift(new Dec());
+			msg = enc.operation(msg, key, alg);
+		  	//System.out.println(enc.operation(msg, key, alg));
+		}
+		if (operation.equals("enc")) {
+			EncrypDecryp enc = new EncrypDecrypUnicode(new Enc());
+			msg = enc.operation(msg, key, alg);
+			//System.out.println(enc.operation(msg, key, alg));
+		}
+
+		for (int i = 0; i < args.length; i++) {
+			if (args[i].contains("-out")) {
+				File file = new File(args[i + 1]);
+				try (BufferedWriter bw = new BufferedWriter(new FileWriter(file) ) ) {
+					bw.write(msg);
+					System.out.println(msg);
+				} catch (IOException e) {
+					System.out.println("Error");
+				}
+			}
+		}
+    }
+}
